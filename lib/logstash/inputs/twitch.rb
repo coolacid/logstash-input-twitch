@@ -46,23 +46,27 @@ class LogStash::Inputs::Twitch < LogStash::Inputs::Base
           if result['stream'] != nil and state[channel] == nil and status == 200
             state[channel] = true
             event["state"] = "Stream Started"
-            event['streamid'] = result['stream']['_id']
-            event["Game"] = result['stream']['game']
             event["title"] = result['stream']['channel']['status']
           elsif result['stream'] == nil and state[channel] != nil and status == 200
             state[channel] = nil
             event["state"] = "Stream Ended"
           end
 
+          event['streamid'] = result['stream']['_id']
+          event["Game"] = result['stream']['game']
+          event["Viewers"] = result['stream']['viewers']
+          event["Follower"] = result['stream']['followers']
+          event["Views"] = result['stream']['views']
+
           response = Faraday.get "http://tmi.twitch.tv/group/user/%s/chatters" % channel
           result = JSON.parse(response.body)
 
-          event['users'] = Hash.new
-          event['users']['all'] = result["chatter_count"]
-          event['users']['mods'] = result["chatters"]["moderators"].count
-          event['users']['staff'] = result["chatters"]["staff"].count
-          event['users']['admins'] = result["chatters"]["admins"].count
-          event['users']['viewers'] = result["chatters"]["viewers"].count
+          event['chat'] = Hash.new
+          event['chat']['all'] = result["chatter_count"]
+          event['chat']['mods'] = result["chatters"]["moderators"].count
+          event['chat']['staff'] = result["chatters"]["staff"].count
+          event['chat']['admins'] = result["chatters"]["admins"].count
+          event['chat']['viewers'] = result["chatters"]["viewers"].count
           decorate(event)
           queue << event
         rescue Exception => e
